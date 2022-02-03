@@ -10,7 +10,6 @@ import subprocess
 from pyroute2 import IPRoute, NetNS, netns
 
 
-TMP_DIR = '/tmp/netcheck/'
 DHCP_TIMEOUT = 5
 NETNS_NAME = 'test'
 TESTIF_NAME = 'testif'
@@ -19,12 +18,6 @@ SCRIPT_DIR = os.path.dirname(__file__)
 CHECK_DHCP_BINARY = os.path.join(SCRIPT_DIR, 'netcheck_check_dhcp')
 
 cleanup_after_run = False
-
-def init():
-    if os.path.exists(TMP_DIR):
-        shutil.rmtree(TMP_DIR)
-
-    os.mkdir(TMP_DIR)
 
 def test_3rd_party_tool_availability():
     tools = ['speedtest-cli', 'ping', 'ip']
