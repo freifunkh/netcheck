@@ -13,6 +13,7 @@ TMP_DIR = '/tmp/netcheck/'
 DHCP_TIMEOUT = 5
 NETNS_NAME = 'test'
 TESTIF_NAME = 'testif'
+PING_TEST_IP4 = '8.8.8.8'
 
 cleanup_after_run = False
 
@@ -22,10 +23,20 @@ def init():
 
     os.mkdir(TMP_DIR)
 
-def check_dhcp(ns, iface, server, timeout=5):
+def ping(ns, dest, timeout=5):
+    p = subprocess.run(f"ip netns exec {ns.netns} ping -c 1 {dest} -w {timeout}", shell=True, capture_output=True)
+    return p.returncode == 0
+
+def check_dhcp(ns, iface, server):
     p = subprocess.run(f"ip netns exec {ns.netns} ./a.out -t {DHCP_TIMEOUT} {iface} {server}", shell=True)
     return p.returncode == 0
 
+def speedtest_cli(ns):
+    p = subprocess.run(f"ip netns exec {ns.netns} speedtest-cli --no-upload --json", shell=True, capture_output=True)
+    
+    if p.returncode != 0:
+        return False
+    
 def lookup_iface(ns, iface):
     if_idx = ns.link_lookup(ifname=iface)
     if len(if_idx) < 1:
@@ -39,6 +50,12 @@ def install_ip(ns, iface, address, prefixlen):
 
     if len(ns.get_addr(index=if_idx, address=address, prefixlen=prefixlen)) < 1:
         ns.addr('add', index=if_idx, address=address, prefixlen=prefixlen)
+
+def install_default_router(ns, iface, gateway):
+    if_idx = lookup_iface(ns, iface)
+
+    if len(ns.get_default_routes()) < 1:
+        ns.route("add", dst="0.0.0.0/0", gateway=gateway)
 
 def cleanup_remove_iface(ns, ifname):
     if len(ns.get_links(ifname=ifname)):
@@ -54,8 +71,12 @@ def is_reachable(ns, ip):
         raise e
 
 iface = 'veth0'
-dhcp_server_ip4 = '10.118.1.1'
+gateway_ip4 = '10.118.1.1'
 static_ip4 = '10.118.1.190'
+
+# iface = 'wlp3s0'
+# gateway_ip4 = '192.168.178.165'
+# static_ip4 = '192.168.178.170'
 static_ip4_plen = 24
 
 # cleanup
@@ -77,12 +98,19 @@ ns = NetNS(NETNS_NAME)
 # create ip if not existing
 install_ip(ns, TESTIF_NAME, static_ip4, static_ip4_plen)
 
-if not is_reachable(ns, dhcp_server_ip4):
-    print(f'The dhcp_server_ip4 {dhcp_server_ip4} you specified is not in the range of {static_ip4}/{static_ip4_plen}.')
+if not is_reachable(ns, gateway_ip4):
+    print(f'The gateway_ip4 {gateway_ip4} you specified is not in the range of {static_ip4}/{static_ip4_plen}.')
     exit(1)
 
-print('Does DHCP wörk?: ', end='', flush=True)
-print(check_dhcp(ns, TESTIF_NAME, dhcp_server_ip4))
+print('Is gateway reachable?: ', end='', flush=True)
+print(ping(ns, gateway_ip4), flush=True)
+print('Does gateway answer DHCP?: ', end='', flush=True)
+print(check_dhcp(ns, TESTIF_NAME, gateway_ip4), flush=True)
+
+install_default_router(ns, TESTIF_NAME, gateway_ip4)
+
+print(f'Is {PING_TEST_IP4} reachable via gateway?: ', end='', flush=True)
+print(ping(ns, PING_TEST_IP4), flush=True)
 
 if cleanup_after_run:
     cleanup_remove_iface(ns, TESTIF_NAME)
