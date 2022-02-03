@@ -2,6 +2,7 @@
 
 import re
 import os
+import sys
 import os.path
 import shutil
 import pyroute2
@@ -14,6 +15,8 @@ DHCP_TIMEOUT = 5
 NETNS_NAME = 'test'
 TESTIF_NAME = 'testif'
 PING_TEST_IP4 = '8.8.8.8'
+SCRIPT_DIR = os.path.dirname(__file__)
+CHECK_DHCP_BINARY = os.path.join(SCRIPT_DIR, 'netcheck_check_dhcp')
 
 cleanup_after_run = False
 
@@ -23,12 +26,23 @@ def init():
 
     os.mkdir(TMP_DIR)
 
+def test_3rd_party_tool_availability():
+    tools = ['speedtest-cli', 'ping', 'ip']
+    for tool in tools:
+        if not shutil.which(tool):
+            print(f'Tool {tool} not found in PATH. Exiting. Please install it or add it to path.', file=sys.stderr)
+            exit(1)
+
+    if not os.path.exists(CHECK_DHCP_BINARY):
+        print(f'Tool {CHECK_DHCP_BINARY} not found. Please build it using make.', file=sys.stderr)
+        exit(1)
+
 def ping(ns, dest, timeout=5):
     p = subprocess.run(f"ip netns exec {ns.netns} ping -c 1 {dest} -w {timeout}", shell=True, capture_output=True)
     return p.returncode == 0
 
 def check_dhcp(ns, iface, server):
-    p = subprocess.run(f"ip netns exec {ns.netns} ./a.out -t {DHCP_TIMEOUT} {iface} {server}", shell=True)
+    p = subprocess.run(f"ip netns exec {ns.netns} {CHECK_DHCP_BINARY} -t {DHCP_TIMEOUT} {iface} {server}", shell=True)
     return p.returncode == 0
 
 def speedtest_cli(ns):
@@ -40,7 +54,7 @@ def speedtest_cli(ns):
 def lookup_iface(ns, iface):
     if_idx = ns.link_lookup(ifname=iface)
     if len(if_idx) < 1:
-        print(f"Iface {iface} not found!")
+        print(f"Iface {iface} not found!", file=sys.stderr)
         exit(1)
     
     return if_idx[0]
@@ -79,6 +93,8 @@ static_ip4 = '10.118.1.190'
 # static_ip4 = '192.168.178.170'
 static_ip4_plen = 24
 
+test_3rd_party_tool_availability()
+
 # cleanup
 if NETNS_NAME in netns.listnetns():
     ns = NetNS(NETNS_NAME)
@@ -99,7 +115,7 @@ ns = NetNS(NETNS_NAME)
 install_ip(ns, TESTIF_NAME, static_ip4, static_ip4_plen)
 
 if not is_reachable(ns, gateway_ip4):
-    print(f'The gateway_ip4 {gateway_ip4} you specified is not in the range of {static_ip4}/{static_ip4_plen}.')
+    print(f'Config error. The gateway_ip4 {gateway_ip4} you specified is not in the range of {static_ip4}/{static_ip4_plen}.', file=sys.stderr)
     exit(1)
 
 print('Is gateway reachable?: ', end='', flush=True)
