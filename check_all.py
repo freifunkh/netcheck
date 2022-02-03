@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-import subprocess
 import re
 import os
 import os.path
 import shutil
 import pyroute2
+import subprocess
 from pyroute2 import IPRoute, NetNS, netns
 
 
@@ -26,14 +26,19 @@ def check_dhcp(ns, iface, server, timeout=5):
     p = subprocess.run(f"ip netns exec {ns.netns} ./a.out -t {DHCP_TIMEOUT} {iface} {server}", shell=True)
     return p.returncode == 0
 
-def install_ip(ns, iface, address, prefixlen):
+def lookup_iface(ns, iface):
     if_idx = ns.link_lookup(ifname=iface)
     if len(if_idx) < 1:
         print(f"Iface {iface} not found!")
         exit(1)
+    
+    return if_idx[0]
 
-    if len(ns.get_addr(index=if_idx[0], address=address, prefixlen=prefixlen)) < 1:
-        ns.addr('add', index=if_idx[0], address=address, prefixlen=prefixlen)
+def install_ip(ns, iface, address, prefixlen):
+    if_idx = lookup_iface(ns, iface)
+
+    if len(ns.get_addr(index=if_idx, address=address, prefixlen=prefixlen)) < 1:
+        ns.addr('add', index=if_idx, address=address, prefixlen=prefixlen)
 
 def cleanup_remove_iface(ns, ifname):
     if len(ns.get_links(ifname=ifname)):
@@ -53,7 +58,6 @@ dhcp_server_ip4 = '10.118.1.1'
 static_ip4 = '10.118.1.190'
 static_ip4_plen = 24
 
-
 # cleanup
 if NETNS_NAME in netns.listnetns():
     ns = NetNS(NETNS_NAME)
@@ -65,14 +69,8 @@ netns.create(NETNS_NAME)
 
 ip = IPRoute()
 
-idx = ip.link_lookup(ifname=iface)
-if len(idx) < 1:
-    print(f"Iface {iface} not found!")
-    exit(1)
-idx = idx[0]
-
 cleanup_remove_iface(ip, TESTIF_NAME)
-ip.link('add', ifname=TESTIF_NAME, kind="macvtap", link=idx, net_ns_fd=NETNS_NAME, state='up')
+ip.link('add', ifname=TESTIF_NAME, kind="macvtap", link=lookup_iface(ip, iface), net_ns_fd=NETNS_NAME, state='up')
 
 ns = NetNS(NETNS_NAME)
 
@@ -83,6 +81,7 @@ if not is_reachable(ns, dhcp_server_ip4):
     print(f'The dhcp_server_ip4 {dhcp_server_ip4} you specified is not in the range of {static_ip4}/{static_ip4_plen}.')
     exit(1)
 
+print('Does DHCP wörk?: ', end='', flush=True)
 print(check_dhcp(ns, TESTIF_NAME, dhcp_server_ip4))
 
 if cleanup_after_run:
