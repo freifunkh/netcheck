@@ -80,6 +80,7 @@ def is_reachable(ns, ip):
 iface = 'veth0'
 gateway_ip4 = '10.118.1.1'
 static_ip4 = '10.118.1.190'
+mac = '12:12:12:12:12:12'
 
 # iface = 'wlp3s0'
 # gateway_ip4 = '192.168.178.165'
@@ -100,7 +101,7 @@ netns.create(NETNS_NAME)
 ip = IPRoute()
 
 cleanup_remove_iface(ip, TESTIF_NAME)
-ip.link('add', ifname=TESTIF_NAME, kind="macvtap", link=lookup_iface(ip, iface), net_ns_fd=NETNS_NAME, state='up')
+ip.link('add', ifname=TESTIF_NAME, kind="macvtap", link=lookup_iface(ip, iface), net_ns_fd=NETNS_NAME, state='up', address=mac)
 
 ns = NetNS(NETNS_NAME)
 
