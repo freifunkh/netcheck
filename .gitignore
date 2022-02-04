@@ -1,1 +1,3 @@
 netcheck_check_dhcp
+venv
+settings.json
