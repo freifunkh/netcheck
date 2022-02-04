@@ -15,7 +15,7 @@ NETNS_NAME = 'test'
 TESTIF_NAME = 'testif'
 PING_TEST_IP4 = '8.8.8.8'
 SCRIPT_DIR = os.path.dirname(__file__)
-CHECK_DHCP_BINARY = os.path.join(SCRIPT_DIR, 'netcheck_check_dhcp')
+CHECK_DHCP_BINARY = os.path.abspath(os.path.join(SCRIPT_DIR, 'netcheck_check_dhcp'))
 
 cleanup_after_run = False
 
