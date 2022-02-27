@@ -109,72 +109,75 @@ def get_config(configfile, iface, server):
 
     return conf
 
+def prepare(config, iface):
+    static_ip4 = config['static_ip4']
+    gateway_ip4 = config['gateway_ip4']
+    mac = config['mac']
 
-parser = argparse.ArgumentParser(description='Perform tests on networks.')
-parser.add_argument('iface', metavar='IFACE',
-                    help='interface to test on')
-parser.add_argument('server', metavar='SERVER',
-                    help='server to test for that interface')
+    if '/' not in static_ip4:
+        print(f'Format for {static_ip4} is invalid. Use format like this: 10.23.10.1/24. Exiting.', file=sys.stderr)
+        exit(1)
 
-args = parser.parse_args()
+    static_ip4_plen = int(static_ip4.split('/')[1])
+    static_ip4 = static_ip4.split('/')[0]
 
-iface = args.iface
-server = args.server
-config = get_config('conf.ini', iface, server)
+    test_3rd_party_tool_availability()
 
-if '/' not in config['static_ip4']:
-    print(f'Format for {config["static_ip4"]} is invalid. Use format like this: 10.23.10.1/24. Exiting.', file=sys.stderr)
-    exit(1)
+    # cleanup unclean state
+    if NETNS_NAME in netns.listnetns():
+        ns = NetNS(NETNS_NAME)
+        cleanup_remove_iface(ns, TESTIF_NAME)
+        ns.close()
+        netns.remove(NETNS_NAME)
 
-static_ip4 = config['static_ip4'].split('/')[0]
-static_ip4_plen = int(config['static_ip4'].split('/')[1])
+    netns.create(NETNS_NAME)
 
-gateway_ip4 = config['gateway_ip4']
-mac = config['mac']
+    ip = IPRoute()
 
-# iface = 'wlp3s0'
-# gateway_ip4 = '192.168.178.165'
-# static_ip4 = '192.168.178.170'
+    cleanup_remove_iface(ip, TESTIF_NAME)
+    ip.link('add', ifname=TESTIF_NAME, kind="macvtap", link=lookup_iface(ip, iface), net_ns_fd=NETNS_NAME, state='up', address=mac)
 
-test_3rd_party_tool_availability()
-
-# cleanup
-if NETNS_NAME in netns.listnetns():
     ns = NetNS(NETNS_NAME)
-    cleanup_remove_iface(ns, TESTIF_NAME)
-    ns.close()
-    netns.remove(NETNS_NAME)
 
-netns.create(NETNS_NAME)
+    # create ip if not existing
+    install_ip(ns, TESTIF_NAME, static_ip4, static_ip4_plen)
 
-ip = IPRoute()
+    if not is_reachable(ns, gateway_ip4):
+        print(f'Config error. The gateway_ip4 {gateway_ip4} you specified is not in the range of {static_ip4}/{static_ip4_plen}.', file=sys.stderr)
+        exit(1)
 
-cleanup_remove_iface(ip, TESTIF_NAME)
-ip.link('add', ifname=TESTIF_NAME, kind="macvtap", link=lookup_iface(ip, iface), net_ns_fd=NETNS_NAME, state='up', address=mac)
+    install_default_router(ns, TESTIF_NAME, gateway_ip4)
 
-ns = NetNS(NETNS_NAME)
+    return ns
 
-# create ip if not existing
-install_ip(ns, TESTIF_NAME, static_ip4, static_ip4_plen)
+if __name__ == '__main__':
 
-if not is_reachable(ns, gateway_ip4):
-    print(f'Config error. The gateway_ip4 {gateway_ip4} you specified is not in the range of {static_ip4}/{static_ip4_plen}.', file=sys.stderr)
-    exit(1)
+    parser = argparse.ArgumentParser(description='Perform tests on networks.')
+    parser.add_argument('iface', metavar='IFACE',
+                        help='interface to test on')
+    parser.add_argument('server', metavar='SERVER',
+                        help='server to test for that interface')
 
-print('Is gateway reachable?: ', end='', flush=True)
-print(ping(ns, gateway_ip4), flush=True)
-print('Does gateway answer DHCP?: ', end='', flush=True)
-print(check_dhcp(ns, TESTIF_NAME, gateway_ip4), flush=True)
+    args = parser.parse_args()
 
-install_default_router(ns, TESTIF_NAME, gateway_ip4)
+    iface = args.iface
+    server = args.server
+    config = get_config('conf.ini', iface, server)
 
-print(f'Is {PING_TEST_IP4} reachable via gateway?: ', end='', flush=True)
-print(ping(ns, PING_TEST_IP4), flush=True)
+    ns = prepare(config, iface)
 
-print('Are more than 20 Mbit/s available?: ', end='',flush=True)
-print(speedtest_cli(ns, 20e6))
+    print('Is gateway reachable?: ', end='', flush=True)
+    print(ping(ns, gateway_ip4), flush=True)
+    print('Does gateway answer DHCP?: ', end='', flush=True)
+    print(check_dhcp(ns, TESTIF_NAME, gateway_ip4), flush=True)
 
-if cleanup_after_run:
-    cleanup_remove_iface(ns, TESTIF_NAME)
-    ns.close()
-    netns.remove(NETNS_NAME)
+    print(f'Is {PING_TEST_IP4} reachable via gateway?: ', end='', flush=True)
+    print(ping(ns, PING_TEST_IP4), flush=True)
+
+    print('Are more than 20 Mbit/s available?: ', end='',flush=True)
+    print(speedtest_cli(ns, 20e6))
+
+    if cleanup_after_run:
+        cleanup_remove_iface(ns, TESTIF_NAME)
+        ns.close()
+        netns.remove(NETNS_NAME)
