@@ -9,6 +9,7 @@ import shutil
 import pyroute2
 import subprocess
 from pyroute2 import IPRoute, NetNS, netns
+import pyroute2.netlink
 
 
 DHCP_TIMEOUT = 5
