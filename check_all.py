@@ -3,6 +3,7 @@
 import re
 import os
 import sys
+import json
 import os.path
 import shutil
 import pyroute2
@@ -38,11 +39,17 @@ def check_dhcp(ns, iface, server):
     p = subprocess.run(f"ip netns exec {ns.netns} {CHECK_DHCP_BINARY} -t {DHCP_TIMEOUT} {iface} {server}", shell=True)
     return p.returncode == 0
 
-def speedtest_cli(ns):
+def speedtest_cli(ns, threshold=20e6):
+    # threshold in mbit/s
     p = subprocess.run(f"ip netns exec {ns.netns} speedtest-cli --no-upload --json", shell=True, capture_output=True)
     
     if p.returncode != 0:
         return False
+
+    stdout = p.stdout.decode('utf-8')
+    download_rate = json.loads(stdout)['download']
+
+    return download_rate > threshold
     
 def lookup_iface(ns, iface):
     if_idx = ns.link_lookup(ifname=iface)
@@ -121,6 +128,9 @@ install_default_router(ns, TESTIF_NAME, gateway_ip4)
 
 print(f'Is {PING_TEST_IP4} reachable via gateway?: ', end='', flush=True)
 print(ping(ns, PING_TEST_IP4), flush=True)
+
+print('Are more than 20 Mbit/s available?: ', end='',flush=True)
+print(speedtest_cli(ns, 20e6))
 
 if cleanup_after_run:
     cleanup_remove_iface(ns, TESTIF_NAME)
