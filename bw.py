@@ -4,22 +4,24 @@ from check_all import *
 from influxdb_client import InfluxDBClient, Point
 
 def write_throughput_influx(config, iface, server, throughput):
-    client = InfluxDBClient(
+    
+    with InfluxDBClient(
         url=config['influx_url'],
         token=config['influx_token'],
-        org=config['influx_org'])
-    write_api = client.write_api()
+        org=config['influx_org']) as client:
 
-    write_api.write(
-        config['influx_bucket'],
-        config['influx_org'],
-        Point('troughput_down')
-            .tag('iface', iface)
-            .tag('server', server)
-            .field('mbps', throughput)
-        )
+        write_api = client.write_api()
 
-    write_api.flush()
+        write_api.write(
+            config['influx_bucket'],
+            config['influx_org'],
+            Point('troughput_down')
+                .tag('iface', iface)
+                .tag('server', server)
+                .field('mbps', throughput)
+            )
+
+        write_api.flush()
 
 
 if __name__ == '__main__':
