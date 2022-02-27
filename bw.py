@@ -2,6 +2,8 @@
 
 from check_all import *
 from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import SYNCHRONOUS
+
 
 def write_throughput_influx(config, iface, server, throughput):
     
@@ -10,7 +12,7 @@ def write_throughput_influx(config, iface, server, throughput):
         token=config['influx_token'],
         org=config['influx_org']) as client:
 
-        write_api = client.write_api()
+        write_api = client.write_api(write_options=SYNCHRONOUS)
 
         write_api.write(
             config['influx_bucket'],
