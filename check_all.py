@@ -164,6 +164,8 @@ if __name__ == '__main__':
     server = args.server
     config = get_config('conf.ini', iface, server)
 
+    gateway_ip4 = config['gateway_ip4']
+
     ns = prepare(config, iface)
 
     print('Is gateway reachable?: ', end='', flush=True)
