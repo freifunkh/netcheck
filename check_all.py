@@ -8,6 +8,7 @@ import os.path
 import shutil
 import pyroute2
 import subprocess
+import configparser
 from pyroute2 import IPRoute, NetNS, netns
 import pyroute2.netlink
 
@@ -85,15 +86,45 @@ def is_reachable(ns, ip):
 
         raise e
 
-iface = 'veth0'
-gateway_ip4 = '10.118.1.1'
-static_ip4 = '10.118.1.190'
-mac = '12:12:12:12:12:12'
+def get_config(configfile, iface, server):
+    config = configparser.ConfigParser()
+    server_section = f"{iface}:{server}"
+
+    if len(config.read(configfile)) < 1:
+        print(f'Config {configfile} not found. Exiting.', file=sys.stderr)
+        exit(1)
+
+    if iface not in config.sections():
+        print(f'Section {iface} not in {configfile}. Exiting.', file=sys.stderr)
+        exit(1)
+    
+    if server_section not in config.sections():
+        print(f'Section {server_section} not in {configfile}. Exiting.', file=sys.stderr)
+        exit(1)
+
+    conf = dict(config['all'])
+    conf.update(dict(config[iface]))
+    conf.update(dict(config[server_section]))
+
+    return conf
+
+iface = 'bat10'
+server = 'sn02'
+config = get_config('conf.ini', iface, server)
+
+if '/' not in config['static_ip4']:
+    print(f'Format for {config["static_ip4"]} is invalid. Use format like this: 10.23.10.1/24. Exiting.', file=sys.stderr)
+    exit(1)
+
+static_ip4 = config['static_ip4'].split('/')[0]
+static_ip4_plen = int(config['static_ip4'].split('/')[1])
+
+gateway_ip4 = config['gateway_ip4']
+mac = config['mac']
 
 # iface = 'wlp3s0'
 # gateway_ip4 = '192.168.178.165'
 # static_ip4 = '192.168.178.170'
-static_ip4_plen = 24
 
 test_3rd_party_tool_availability()
 
