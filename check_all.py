@@ -42,17 +42,17 @@ def check_dhcp(ns, iface, server):
     p = subprocess.run(f"ip netns exec {ns.netns} {CHECK_DHCP_BINARY} -t {DHCP_TIMEOUT} {iface} {server}", shell=True)
     return p.returncode == 0
 
-def speedtest_cli(ns, threshold=20e6):
+def speedtest_cli(ns):
     # threshold in mbit/s
     p = subprocess.run(f"ip netns exec {ns.netns} speedtest-cli --no-upload --json", shell=True, capture_output=True)
     
     if p.returncode != 0:
-        return False
+        return 0
 
     stdout = p.stdout.decode('utf-8')
     download_rate = json.loads(stdout)['download']
 
-    return download_rate > threshold
+    return download_rate
     
 def lookup_iface(ns, iface):
     if_idx = ns.link_lookup(ifname=iface)
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     print(ping(ns, PING_TEST_IP4), flush=True)
 
     print('Are more than 20 Mbit/s available?: ', end='',flush=True)
-    print(speedtest_cli(ns, 20e6))
+    print(speedtest_cli(ns) > 20e6)
 
     if cleanup_after_run:
         cleanup_remove_iface(ns, TESTIF_NAME)
