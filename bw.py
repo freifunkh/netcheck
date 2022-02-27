@@ -40,7 +40,7 @@ if __name__ == '__main__':
         ns = prepare(config, args.iface)
 
         # measure
-        throughput = speedtest_cli(ns)
+        throughput = iperf3(ns, config['gateway_ip4'])
 
         # write to influx
         write_throughput_influx(config, args.iface, server, throughput)

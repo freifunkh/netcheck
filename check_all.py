@@ -43,7 +43,6 @@ def check_dhcp(ns, iface, server):
     return p.returncode == 0
 
 def speedtest_cli(ns):
-    # threshold in mbit/s
     p = subprocess.run(f"ip netns exec {ns.netns} speedtest-cli --no-upload --json", shell=True, capture_output=True)
     
     if p.returncode != 0:
@@ -51,6 +50,17 @@ def speedtest_cli(ns):
 
     stdout = p.stdout.decode('utf-8')
     download_rate = json.loads(stdout)['download']
+
+    return download_rate
+
+def iperf3(ns, server, duration=10):
+    p = subprocess.run(f"ip netns exec {ns.netns} iperf3 -c {server} -R -J -t {duration}", shell=True, capture_output=True)
+
+    if p.returncode != 0:
+        return 0
+
+    stdout = p.stdout.decode('utf-8')
+    download_rate = json.loads(stdout)['end']['sum_received']['bits_per_second']
 
     return download_rate
     
