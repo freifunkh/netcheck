@@ -33,13 +33,17 @@ if __name__ == '__main__':
     parser.add_argument('servers', metavar='SERVER', nargs='+',
                         help='servers to test for that interface')
     parser.add_argument('-v', '--verbose', action='store_true', default=False)
+    parser.add_argument('--skip-preparation', action='store_true', default=False)
 
     args = parser.parse_args()
 
     for server in args.servers:
         config = get_config('conf.ini', args.iface, server)
 
-        ns = prepare(config, args.iface)
+        if args.skip_preparation:
+            ns = NetNS(NETNS_NAME)
+        else:
+            ns = prepare(config, args.iface)
 
         # measure
         throughput = iperf3(ns, config['gateway_ip4'])
