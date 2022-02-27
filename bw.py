@@ -23,14 +23,22 @@ def write_throughput_influx(config, iface, server, throughput):
 
 
 if __name__ == '__main__':
-    iface = "bat10"
-    server = "sn10"
-    config = get_config('conf.ini', iface, server)
+    parser = argparse.ArgumentParser(description='Perform tests on networks.')
+    parser.add_argument('iface', metavar='IFACE',
+                        help='interface to test on')
+    parser.add_argument('servers', metavar='SERVER', nargs='+',
+                        help='servers to test for that interface')
+    parser.add_argument('-v', '--verbose', type=bool, action='store_true', default=False)
 
-    ns = prepare(config, iface)
+    args = parser.parse_args()
 
-    # measure
-    throughput = speedtest_cli(ns)
+    for server in args.servers:
+        config = get_config('conf.ini', args.iface, server)
 
-    # write to influx
-    write_throughput_influx(config, iface, server, throughput)
+        ns = prepare(config, args.iface)
+
+        # measure
+        throughput = speedtest_cli(ns)
+
+        # write to influx
+        write_throughput_influx(config, args.iface, server, throughput)
