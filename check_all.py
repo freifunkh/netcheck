@@ -6,6 +6,7 @@ import sys
 import json
 import os.path
 import shutil
+import argparse
 import pyroute2
 import subprocess
 import configparser
@@ -108,8 +109,17 @@ def get_config(configfile, iface, server):
 
     return conf
 
-iface = 'bat10'
-server = 'sn02'
+
+parser = argparse.ArgumentParser(description='Perform tests on networks.')
+parser.add_argument('iface', metavar='IFACE',
+                    help='interface to test on')
+parser.add_argument('server', metavar='SERVER',
+                    help='server to test for that interface')
+
+args = parser.parse_args()
+
+iface = args.iface
+server = args.server
 config = get_config('conf.ini', iface, server)
 
 if '/' not in config['static_ip4']:
