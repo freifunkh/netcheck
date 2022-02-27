@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from check_all import *
+from influxdb_client import InfluxDBClient, Point
 
 def write_throughput_influx(config, iface, server, throughput):
     client = InfluxDBClient(
