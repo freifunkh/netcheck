@@ -28,7 +28,7 @@ if __name__ == '__main__':
                         help='interface to test on')
     parser.add_argument('servers', metavar='SERVER', nargs='+',
                         help='servers to test for that interface')
-    parser.add_argument('-v', '--verbose', type=bool, action='store_true', default=False)
+    parser.add_argument('-v', '--verbose', action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
 
