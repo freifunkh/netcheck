@@ -46,7 +46,7 @@ def speedtest_cli(ns):
     p = subprocess.run(f"ip netns exec {ns.netns} speedtest-cli --no-upload --json", shell=True, capture_output=True)
     
     if p.returncode != 0:
-        return 0
+        return 0.0
 
     stdout = p.stdout.decode('utf-8')
     download_rate = json.loads(stdout)['download']
@@ -57,7 +57,7 @@ def iperf3(ns, server, duration=10):
     p = subprocess.run(f"ip netns exec {ns.netns} iperf3 -c {server} -R -J -t {duration}", shell=True, capture_output=True)
 
     if p.returncode != 0:
-        return 0
+        return 0.0
 
     stdout = p.stdout.decode('utf-8')
     download_rate = json.loads(stdout)['end']['sum_received']['bits_per_second']
