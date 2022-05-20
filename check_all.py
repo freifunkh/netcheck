@@ -7,6 +7,7 @@ import json
 import os.path
 import shutil
 import argparse
+import datetime
 import pyroute2
 import subprocess
 import configparser
@@ -63,14 +64,15 @@ def iperf3(ns, server, duration=10):
     result = json.loads(stdout)
 
     download_rate = result['end']['sum_received']['bits_per_second']
-    start = result['start']['timestamp']['timesecs']
+    start = datetime.datetime.fromtimestamp(
+        result['start']['timestamp']['timesecs'])
 
     download_rates_details = {}
     for interval_result in result['intervals']:
         bits_per_second = interval_result['sum']['bits_per_second']
-        timestamp = start + interval_result['sum']['end']
+        timedelta_since_start = datetime.timedelta(seconds=interval_result['sum']['end'])
 
-        download_rates_details[timestamp] = bits_per_second
+        download_rates_details[timestamp] = start + timedelta_since_start
 
     return download_rate, download_rates_details
     

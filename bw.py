@@ -32,7 +32,7 @@ def write_throughput_influx(config, iface, server, throughput, throughput_detail
                         .tag('iface', iface)
                         .tag('server', server)
                         .field('mbps', throughput_detail)
-                        .time(time)
+                        .time(time.isoformat())
                 )
 
         write_api.flush()
