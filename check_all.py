@@ -4,6 +4,7 @@ import re
 import os
 import sys
 import json
+import time
 import os.path
 import shutil
 import argparse
@@ -64,8 +65,9 @@ def iperf3(ns, server, duration=10):
     result = json.loads(stdout)
 
     download_rate = float(result['end']['sum_received']['bits_per_second'])
+    systime_to_utc = datetime.timedelta(seconds=time.timezone)
     start = datetime.datetime.fromtimestamp(
-        result['start']['timestamp']['timesecs'])
+        result['start']['timestamp']['timesecs']) + systime_to_utc
 
     download_rates_details = {}
     for interval_result in result['intervals']:
