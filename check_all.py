@@ -63,10 +63,14 @@ def iperf3(ns, server, duration=10):
     result = json.loads(stdout)
 
     download_rate = result['end']['sum_received']['bits_per_second']
+    start = result['start']['timestamp']['timesecs']
 
-    download_rates_details = []
+    download_rates_details = {}
     for interval_result in result['intervals']:
-        download_rates_details.append(interval_result['sum']['bits_per_second'])
+        bits_per_second = interval_result['sum']['bits_per_second']
+        timestamp = start + interval_result['sum']['end']
+
+        download_rates_details[timestamp] = bits_per_second
 
     return download_rate, download_rates_details
     

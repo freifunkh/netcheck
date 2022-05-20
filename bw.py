@@ -24,7 +24,7 @@ def write_throughput_influx(config, iface, server, throughput, throughput_detail
         )
 
         if throughput_details is not None:
-            for throughput_detail in throughput_details:
+            for time, throughput_detail in throughput_details.items():
                 write_api.write(
                     config['influx_bucket'],
                     config['influx_org'],
@@ -32,6 +32,7 @@ def write_throughput_influx(config, iface, server, throughput, throughput_detail
                         .tag('iface', iface)
                         .tag('server', server)
                         .field('mbps', throughput_detail)
+                        .time(time)
                 )
 
         write_api.flush()
