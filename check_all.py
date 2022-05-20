@@ -71,8 +71,9 @@ def iperf3(ns, server, duration=10):
     for interval_result in result['intervals']:
         bits_per_second = interval_result['sum']['bits_per_second']
         timedelta_since_start = datetime.timedelta(seconds=interval_result['sum']['end'])
+        timestamp = start + timedelta_since_start
 
-        download_rates_details[timestamp] = start + timedelta_since_start
+        download_rates_details[timestamp] = bits_per_second
 
     return download_rate, download_rates_details
     
