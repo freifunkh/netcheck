@@ -60,9 +60,15 @@ def iperf3(ns, server, duration=10):
         return 0.0
 
     stdout = p.stdout.decode('utf-8')
-    download_rate = json.loads(stdout)['end']['sum_received']['bits_per_second']
+    result = json.loads(stdout)
 
-    return download_rate
+    download_rate = result['end']['sum_received']['bits_per_second']
+
+    download_rates_details = []
+    for interval_result in result['intervals']:
+        download_rates_details.append(interval_result['sum']['bits_per_second'])
+
+    return download_rate, download_rates_details
     
 def lookup_iface(ns, iface):
     if_idx = ns.link_lookup(ifname=iface)
