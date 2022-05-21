@@ -65,7 +65,7 @@ def iperf3(ns, server, duration=10):
     result = json.loads(stdout)
 
     download_rate = float(result['end']['sum_received']['bits_per_second'])
-    systime_to_utc = datetime.utcnow() - datetime.now()
+    systime_to_utc = datetime.datetime.utcnow() - datetime.datetime.now()
     start = datetime.datetime.fromtimestamp(
         result['start']['timestamp']['timesecs']) + systime_to_utc
 
