@@ -59,7 +59,7 @@ if __name__ == '__main__':
             ns = prepare(config, args.iface)
 
         # measure
-        throughput, throughput_details = iperf3(ns, config['gateway_ip4'])
+        throughput, throughput_details = iperf3(ns, config['gateway_ip4'], duration=60)
 
         if not args.push_details:
             throughput_details = None
