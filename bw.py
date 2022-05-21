@@ -64,7 +64,5 @@ if __name__ == '__main__':
         if not args.push_details:
             throughput_details = None
 
-        print(throughput_details)
-
         # write to influx
         write_throughput_influx(config, args.iface, server, throughput, throughput_details)
