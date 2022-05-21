@@ -47,6 +47,8 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true', default=False)
     parser.add_argument('--skip-preparation', action='store_true', default=False)
     parser.add_argument('--push-details', action='store_true', default=False)
+    parser.add_argument('-t', '--time', type=int, metavar="SECS",
+                        help="Duration of iperf test", default=10)
 
     args = parser.parse_args()
 
@@ -59,7 +61,7 @@ if __name__ == '__main__':
             ns = prepare(config, args.iface)
 
         # measure
-        throughput, throughput_details = iperf3(ns, config['gateway_ip4'], duration=60)
+        throughput, throughput_details = iperf3(ns, config['gateway_ip4'], duration=args.time)
 
         if not args.push_details:
             throughput_details = None
