@@ -5,7 +5,7 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 
-def write_throughput_influx(config, iface, server, throughput, throughput_details):
+def write_throughput_influx(config, iface, server, throughput, throughput_details, duration):
     
     with InfluxDBClient(
         url=config['influx_url'],
@@ -20,6 +20,7 @@ def write_throughput_influx(config, iface, server, throughput, throughput_detail
             Point('troughput_down')
                 .tag('iface', iface)
                 .tag('server', server)
+                .tag('duration', str(duration)+'s')
                 .field('mbps', throughput)
         )
 
@@ -67,4 +68,4 @@ if __name__ == '__main__':
             throughput_details = None
 
         # write to influx
-        write_throughput_influx(config, args.iface, server, throughput, throughput_details)
+        write_throughput_influx(config, args.iface, server, throughput, throughput_details, args.time)
